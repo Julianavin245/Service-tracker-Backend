@@ -1,35 +1,41 @@
-const express = require('express');
-const cors = require('cors');
-const sqlite3 = require('sqlite3').verbose();
-const app = express();
+// backend/index.js
+const express = require("express");
+const cors = require("cors");
+const sqlite3 = require("sqlite3").verbose();
 
-const PORT = process.env.PORT || 5000;
+const app = express();
+const port = 5000;
 
 app.use(cors());
 app.use(express.json());
 
-// Koneksi ke database
-const db = new sqlite3.Database('./database.db', (err) => {
-  if (err) console.error(err.message);
-  else console.log('Connected to SQLite database');
-});
+const db = new sqlite3.Database("./database.db");
 
-// Inisialisasi tabel (kalau belum ada)
+// Buat tabel jika belum ada
 db.run(`
-  CREATE TABLE IF NOT EXISTS servis (
+  CREATE TABLE IF NOT EXISTS services (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nama TEXT,
-    perangkat TEXT,
-    keluhan TEXT
+    name TEXT,
+    device TEXT,
+    issue TEXT,
+    status TEXT
   )
 `);
 
-// Endpoint tambah data
-app.post('/api/servis', (req, res) => {
-  const { nama, perangkat, keluhan } = req.body;
+// API GET semua servis
+app.get("/api/services", (req, res) => {
+  db.all("SELECT * FROM services", [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+// API Tambah servis baru
+app.post("/api/services", (req, res) => {
+  const { name, device, issue, status } = req.body;
   db.run(
-    'INSERT INTO servis (nama, perangkat, keluhan) VALUES (?, ?, ?)',
-    [nama, perangkat, keluhan],
+    "INSERT INTO services (name, device, issue, status) VALUES (?, ?, ?, ?)",
+    [name, device, issue, status],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ id: this.lastID });
@@ -37,14 +43,6 @@ app.post('/api/servis', (req, res) => {
   );
 });
 
-// Endpoint ambil semua data servis
-app.get('/api/servis', (req, res) => {
-  db.all('SELECT * FROM servis', [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
 });
